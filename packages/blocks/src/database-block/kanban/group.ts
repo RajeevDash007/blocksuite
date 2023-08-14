@@ -36,13 +36,32 @@ const styles = css`
   }
 
   .group-header-title {
+    overflow: hidden;
     display: flex;
     align-items: center;
     gap: 8px;
     font-size: 12px;
   }
+  .group-header-name {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .group-header-icon {
+    display: flex;
+    align-items: center;
+    margin-right: -4px;
+  }
+
+  .group-header-icon svg {
+    width: 16px;
+    height: 16px;
+    color: var(--affine-icon-color);
+    fill: var(--affine-icon-color);
+  }
 
   .group-header-count {
+    flex-shrink: 0;
     width: 20px;
     height: 20px;
     border-radius: 4px;
@@ -50,6 +69,7 @@ const styles = css`
     display: flex;
     align-items: center;
     justify-content: center;
+    color: var(--affine-text-secondary-color);
   }
 
   .group-header-ops {
@@ -79,6 +99,7 @@ const styles = css`
     width: 16px;
     height: 16px;
     fill: var(--affine-icon-color);
+    color: var(--affine-icon-color);
   }
 
   .group-body {
@@ -183,7 +204,7 @@ export class KanbanGroup extends WithDisposable(ShadowlessElement) {
     ]);
   };
   private renderTitle = () => {
-    const data = this.group.helper.groupData();
+    const data = this.group.helper.groupConfig();
     if (!data) {
       return;
     }
@@ -207,10 +228,17 @@ export class KanbanGroup extends WithDisposable(ShadowlessElement) {
 
   override render() {
     const cards = this.group.rows;
-
+    const icon =
+      this.group.value == null
+        ? ''
+        : html` <uni-lit
+            class="group-header-icon"
+            .uni="${this.group.helper.column.icon}"
+          ></uni-lit>`;
     return html`
       <div class="group-header">
         <div class="group-header-title">
+          ${icon}
           <div class="group-header-name">${this.renderTitle()}</div>
           ${this.renderCount()}
         </div>

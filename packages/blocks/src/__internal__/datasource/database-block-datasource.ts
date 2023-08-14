@@ -76,7 +76,6 @@ export class DatabaseBlockDatasource extends BaseDataSource {
       .getPage(config.pageId)
       ?.getBlockById(config.blockId) as DatabaseBlockModel;
     this._model.childrenUpdated.pipe(this.slots.update);
-    this._model.propsUpdated.pipe(this.slots.update);
   }
 
   public get rows(): string[] {
@@ -131,6 +130,7 @@ export class DatabaseBlockDatasource extends BaseDataSource {
         columnId: propertyId,
         value,
       });
+      this._model.applyColumnUpdate();
     }
   }
 
@@ -201,11 +201,13 @@ export class DatabaseBlockDatasource extends BaseDataSource {
   ): void {
     this.page.captureSync();
     this._model.updateColumn(propertyId, () => ({ data }));
+    this._model.applyColumnUpdate();
   }
 
   public propertyChangeName(propertyId: string, name: string): void {
     this.page.captureSync();
     this._model.updateColumn(propertyId, () => ({ name }));
+    this._model.applyColumnUpdate();
   }
 
   public propertyChangeType(propertyId: string, toType: string): void {
@@ -233,6 +235,7 @@ export class DatabaseBlockDatasource extends BaseDataSource {
       }
     });
     this._model.updateCells(propertyId, cells);
+    this._model.applyColumnUpdate();
   }
 
   public propertyDelete(id: string): void {
@@ -243,6 +246,7 @@ export class DatabaseBlockDatasource extends BaseDataSource {
     this.page.transact(() => {
       this._model.columns.splice(index, 1);
     });
+    this._model.applyColumnUpdate();
   }
 
   public propertyGetData(propertyId: string): Record<string, unknown> {
@@ -281,8 +285,8 @@ export class DatabaseBlockDatasource extends BaseDataSource {
       },
       schema
     );
-    this._model.applyColumnUpdate();
     this._model.copyCellsByColumn(copyId, id);
+    this._model.applyColumnUpdate();
     return id;
   }
 
@@ -305,7 +309,7 @@ export class DatabaseBlockDatasource extends BaseDataSource {
 
   public override propertyGetDefaultWidth(propertyId: string): number {
     if (this.propertyGetType(propertyId) === 'title') {
-      return 432;
+      return 260;
     }
     return super.propertyGetDefaultWidth(propertyId);
   }
@@ -315,7 +319,7 @@ export class DatabaseBlockDatasource extends BaseDataSource {
     propertyId: string,
     callback: () => void
   ): Disposable {
-    if (this.propertyGetType(propertyId)) {
+    if (this.propertyGetType(propertyId) === 'title') {
       this.getModelById(rowId)?.text?.yText.observe(callback);
       return {
         dispose: () => {
@@ -323,7 +327,7 @@ export class DatabaseBlockDatasource extends BaseDataSource {
         },
       };
     }
-    return super.onCellUpdate(rowId, propertyId, callback);
+    return this._model.propsUpdated.on(callback);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

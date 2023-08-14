@@ -54,7 +54,7 @@ export interface DataViewManager {
 
   rowAdd(insertPosition: InsertPosition): string;
 
-  columnAdd(toAfterOfColumn: InsertPosition, type?: string): void;
+  columnAdd(toAfterOfColumn: InsertPosition, type?: string): string;
 
   columnDelete(columnId: string): void;
 
@@ -112,6 +112,10 @@ export interface DataViewManager {
   ): Disposable;
 
   columnMove(columnId: string, position: InsertPosition): void;
+
+  deleteView(): void;
+
+  get isDeleted(): boolean;
 }
 
 export interface DataViewColumnManager<
@@ -125,6 +129,8 @@ export interface DataViewColumnManager<
   get index(): number;
 
   get type(): string;
+
+  get dataType(): TType;
 
   get name(): string;
 
@@ -291,8 +297,10 @@ export abstract class BaseDataViewManager implements DataViewManager {
     this.dataSource.cellChangeValue(rowId, columnId, value);
   }
 
-  public columnAdd(toAfterOfColumn: InsertPosition, type?: string): void {
-    this.dataSource.propertyAdd(toAfterOfColumn, type);
+  public columnAdd(position: InsertPosition, type?: string): string {
+    const id = this.dataSource.propertyAdd(position, type);
+    this.columnMove(id, position);
+    return id;
   }
 
   public columnDelete(columnId: string): void {
@@ -407,6 +415,9 @@ export abstract class BaseDataViewManager implements DataViewManager {
   }
 
   abstract columnMove(columnId: string, position: InsertPosition): void;
+
+  public abstract deleteView(): void;
+  public abstract get isDeleted(): boolean;
 }
 
 export abstract class BaseDataViewColumnManager
@@ -458,6 +469,10 @@ export abstract class BaseDataViewColumnManager
 
   get type(): string {
     return this.dataViewManager.columnGetType(this.id);
+  }
+
+  get dataType(): TType {
+    return columnManager.getColumn(this.type).dataType(this.data);
   }
 
   getValue(rowId: string): unknown | undefined {

@@ -386,10 +386,17 @@ export async function selectBrushColor(page: Page, color: CssVariableName) {
   await colorButton.click();
 }
 
-export async function selectBrushSize(page: Page, size: 4 | 10) {
-  const sizeMap = { 4: 'thin', 10: 'thick' };
+export async function selectBrushSize(page: Page, size: string) {
+  const sizeIndexMap: { [key: string]: number } = {
+    two: 6,
+    four: 5,
+    six: 4,
+    eight: 3,
+    ten: 2,
+    twelve: 1,
+  };
   const sizeButton = page.locator(
-    `edgeless-brush-menu .brush-size-button .${sizeMap[size]}`
+    `edgeless-brush-menu .line-width-panel .line-width-button:nth-child(${sizeIndexMap[size]})`
   );
   await sizeButton.click();
 }
@@ -967,7 +974,7 @@ export async function getSelectedBound(page: Page, index = 0) {
     ([index]) => {
       const container = document.querySelector('affine-edgeless-page');
       if (!container) throw new Error('container not found');
-      const selected = container.selection.elements[index];
+      const selected = container.selectionManager.elements[index];
       return JSON.parse(selected.xywh);
     },
     [index]

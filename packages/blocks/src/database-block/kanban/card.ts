@@ -17,6 +17,7 @@ const styles = css`
     box-shadow: 0px 2px 3px 0px rgba(0, 0, 0, 0.05);
     border-radius: 8px;
     transition: background-color 100ms ease-in-out;
+    background-color: var(--affine-background-secondary-color);
   }
 
   affine-data-view-kanban-card:hover {
@@ -76,9 +77,19 @@ export class KanbanCard extends WithDisposable(ShadowlessElement) {
   override connectedCallback() {
     super.connectedCallback();
     this._disposables.addFromEvent(this, 'click', e => {
+      const selection = this.closest('affine-data-view-kanban')?.selection;
+      const preSelection = selection?.selection;
+      if (selection) {
+        selection.selection = undefined;
+      }
       popSideDetail({
         view: this.view,
         rowId: this.cardId,
+        onClose: () => {
+          if (selection) {
+            selection.selection = preSelection;
+          }
+        },
       });
     });
     this._disposables.add(
@@ -104,13 +115,14 @@ export class KanbanCard extends WithDisposable(ShadowlessElement) {
       ></affine-data-view-kanban-cell>
     </div>`;
   }
+
   private renderIcon() {
     const icon = this.view.getHeaderIcon(this.cardId);
     if (!icon) {
       return;
     }
     return html` <div class="card-header-icon">
-      <img src=${icon.getValue(this.cardId) as string} />
+      <img src="${icon.getValue(this.cardId) as string}" />
     </div>`;
   }
 

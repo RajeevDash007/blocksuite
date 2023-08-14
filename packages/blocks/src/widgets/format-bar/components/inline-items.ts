@@ -1,26 +1,32 @@
-import { html } from 'lit';
+import { html, nothing } from 'lit';
 
 import type { AffineTextAttributes } from '../../../__internal__/rich-text/virgo/types.js';
-import { inlineFormatConfig } from '../../../page-block/const/inline-format-config.js';
-import type { PageBlockComponent } from '../../../page-block/types.js';
 import {
-  getBlockSelections,
+  inlineFormatConfig,
+  noneInlineUnsupportedBlockSelected,
+} from '../../../page-block/const/inline-format-config.js';
+import { isPageComponent } from '../../../page-block/utils/guard.js';
+import {
   getCombinedFormatInBlockSelections,
   getCombinedFormatInTextSelection,
-  getTextSelection,
 } from '../../../page-block/utils/selection.js';
 import type { AffineFormatBarWidget } from '../format-bar.js';
+import { BackgroundButton } from './background/background-button.js';
 
-interface InlineItemsProps {
-  pageElement: PageBlockComponent;
-  formatBar: AffineFormatBarWidget;
-}
+export const InlineItems = (formatBar: AffineFormatBarWidget) => {
+  const pageElement = formatBar.pageElement;
+  if (!isPageComponent(pageElement)) {
+    throw new Error('the pageElement of formatBar is not a PageComponent');
+  }
 
-export const InlineItems = ({ pageElement, formatBar }: InlineItemsProps) => {
+  if (!noneInlineUnsupportedBlockSelected(pageElement)) {
+    return nothing;
+  }
+
   let type: 'text' | 'block' = 'text';
   let format: AffineTextAttributes = {};
-  const textSelection = getTextSelection(pageElement);
-  const blockSelections = getBlockSelections(pageElement);
+  const textSelection = pageElement.selection.find('text');
+  const blockSelections = pageElement.selection.filter('block');
 
   if (
     !(
@@ -39,25 +45,30 @@ export const InlineItems = ({ pageElement, formatBar }: InlineItemsProps) => {
     type = 'block';
   }
 
-  return inlineFormatConfig
-    .filter(({ showWhen }) => showWhen(pageElement))
-    .map(
-      ({ id, name, icon, action, activeWhen }) => html`<icon-button
-        size="32px"
-        class="has-tool-tip"
-        data-testid=${id}
-        ?active=${activeWhen(format)}
-        @click=${() => {
-          action({
-            pageElement,
-            type,
-            format,
-          });
-          formatBar.requestUpdate();
-        }}
-      >
-        ${icon}
-        <tool-tip inert role="tooltip">${name}</tool-tip>
-      </icon-button>`
-    );
+  const backgroundButton = BackgroundButton(formatBar);
+
+  return html`${inlineFormatConfig
+      .filter(({ showWhen }) => showWhen(pageElement))
+      .map(
+        ({ id, name, icon, action, activeWhen }) => html`<icon-button
+          size="32px"
+          class="has-tool-tip"
+          data-testid=${id}
+          ?active=${activeWhen(format)}
+          @click=${() => {
+            action({
+              blockElement: pageElement,
+              type,
+              format,
+            });
+            formatBar.requestUpdate();
+          }}
+        >
+          ${icon}
+          <tool-tip inert role="tooltip">${name}</tool-tip>
+        </icon-button>`
+      )}
+    <div class="divider"></div>
+    ${backgroundButton}
+    <div class="divider"></div>`;
 };

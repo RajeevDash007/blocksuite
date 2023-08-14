@@ -8,6 +8,7 @@ import { actionConfig } from '../page-block/const/action-config.js';
 import { paragraphConfig } from '../page-block/const/paragraph-config.js';
 import type { PageBlockComponent } from '../page-block/types.js';
 import {
+  getSelectedContentBlockElements,
   onModelElementUpdated,
   updateBlockElementType,
 } from '../page-block/utils/index.js';
@@ -16,7 +17,6 @@ import {
   getBlockSelectionBySide,
   getNextBlock,
   getPrevBlock,
-  getSelectedBlockElements,
   getTextSelection,
   moveCursorToNextBlockElement,
   moveCursorToPrevBlockElement,
@@ -268,17 +268,14 @@ export const bindHotKey = (blockElement: BlockElement) => {
         [key]: ctx => {
           const selectionManager = blockElement.root.selectionManager;
 
-          const pageElement = blockElement.closest<PageBlockComponent>(
-            'affine-doc-page,affine-edgeless-page'
-          );
-          if (!pageElement) return;
-
           ctx.get('defaultState').event.preventDefault();
 
-          const selected = getSelectedBlockElements(pageElement);
+          const selected = getSelectedContentBlockElements(blockElement, [
+            'text',
+            'block',
+          ]);
 
           const newModels = updateBlockElementType(
-            pageElement,
             selected,
             config.flavour,
             config.type
@@ -292,7 +289,7 @@ export const bindHotKey = (blockElement: BlockElement) => {
           onModelElementUpdated(codeModel, () => {
             const codeElement = getBlockElementByModel(codeModel);
             assertExists(codeElement);
-            selectionManager.set([
+            selectionManager.setGroup('note', [
               new TextSelection({
                 from: {
                   path: codeElement.path,

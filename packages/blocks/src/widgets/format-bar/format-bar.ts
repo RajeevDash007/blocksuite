@@ -1,4 +1,3 @@
-import { BlockSelection } from '@blocksuite/block-std';
 import type { BlockElement } from '@blocksuite/lit';
 import { WidgetElement } from '@blocksuite/lit';
 import { assertExists, DisposableGroup } from '@blocksuite/store';
@@ -14,15 +13,9 @@ import { html, nothing } from 'lit';
 import { customElement, query } from 'lit/decorators.js';
 
 import { stopPropagation } from '../../__internal__/utils/event.js';
-import { noneInlineUnsupportedBlockSelected } from '../../page-block/const/inline-format-config.js';
-import type { RangeManager } from '../../page-block/text-selection/range-manager.js';
 import { isPageComponent } from '../../page-block/utils/guard.js';
-import {
-  getSelectedContentBlockElements,
-  getTextSelection,
-} from '../../page-block/utils/selection.js';
+import { getSelectedContentBlockElements } from '../../page-block/utils/selection.js';
 import { ActionItems } from './components/action-items.js';
-import { BackgroundHighlightButton } from './components/bg-highlight-button.js';
 import { InlineItems } from './components/inline-items.js';
 import { ParagraphButton } from './components/paragraph-button.js';
 import { formatBarStyle } from './styles.js';
@@ -63,14 +56,15 @@ export class AffineFormatBarWidget extends WidgetElement {
 
   private _abortController = new AbortController();
 
-  private _rangeManager: RangeManager | null = null;
-
   private _placement: Placement = 'top';
+
+  private get _rangeManager() {
+    return this.root.rangeManager;
+  }
 
   private _reset() {
     this._displayType = 'none';
     this._selectedBlockElements = [];
-    this._rangeManager = null;
   }
 
   private _shouldDisplay() {
@@ -148,20 +142,19 @@ export class AffineFormatBarWidget extends WidgetElement {
     );
 
     this._disposables.add(
-      this._selectionManager.slots.changed.on(async selections => {
+      this._selectionManager.slots.changed.on(async () => {
         await this.updateComplete;
-        const textSelection = getTextSelection(pageElement);
-        const blockSelections = selections.filter(
-          selection => selection instanceof BlockSelection
-        ) as BlockSelection[];
+        const textSelection = pageElement.selection.find('text');
+        const blockSelections = pageElement.selection.filter('block');
 
         if (textSelection) {
           if (!textSelection.isCollapsed()) {
             this._displayType = 'text';
-            assertExists(pageElement.rangeManager);
-            this._rangeManager = pageElement.rangeManager;
-            this._selectedBlockElements =
-              getSelectedContentBlockElements(pageElement);
+            assertExists(pageElement.root.rangeManager);
+            this._selectedBlockElements = getSelectedContentBlockElements(
+              pageElement,
+              ['text']
+            );
           } else {
             this._reset();
           }
@@ -307,16 +300,12 @@ export class AffineFormatBarWidget extends WidgetElement {
     //TODO: format bar in database
 
     const paragraphButton = ParagraphButton({
-      pageElement,
       formatBar: this,
       selectedBlockElements,
       page,
     });
     const actionItems = ActionItems(pageElement);
-    const inlineItems = InlineItems({ pageElement, formatBar: this });
-    const backgroundHighlightButton = BackgroundHighlightButton({
-      formatBar: this,
-    });
+    const inlineItems = InlineItems(this);
 
     return html`<div
       class=${AFFINE_FORMAT_BAR_WIDGET_TAG}
@@ -328,13 +317,7 @@ export class AffineFormatBarWidget extends WidgetElement {
         : nothing}
       ${paragraphButton}
       <div class="divider"></div>
-      ${inlineItems}
-      ${inlineItems.length ? html`<div class="divider"></div>` : nothing}
-      ${noneInlineUnsupportedBlockSelected(pageElement)
-        ? html`${backgroundHighlightButton}
-            <div class="divider"></div>`
-        : nothing}
-      ${actionItems}
+      ${inlineItems} ${actionItems}
     </div>`;
   }
 }

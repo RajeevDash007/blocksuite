@@ -27,6 +27,7 @@ import { DocPageBlockComponent } from '../../page-block/doc/doc-page-block.js';
 import { EdgelessPageBlockComponent } from '../../page-block/edgeless/edgeless-page-block.js';
 import { autoScroll } from '../../page-block/text-selection/utils.js';
 import {
+  DRAG_HANDLE_GRABBER_BORDER_RADIUS,
   DRAG_HANDLE_GRABBER_HEIGHT,
   DRAG_HANDLE_GRABBER_WIDTH,
   NOTE_CONTAINER_PADDING,
@@ -135,6 +136,9 @@ export class DragHandleWidget extends WidgetElement {
     this._dragHandleGrabber.style.width = `${
       DRAG_HANDLE_GRABBER_WIDTH * this._scale
     }px`;
+    this._dragHandleGrabber.style.borderRadius = `${
+      DRAG_HANDLE_GRABBER_BORDER_RADIUS * this._scale
+    }px`;
   }
 
   private _setSelectedBlocks(blockElements: BlockElement[], noteId?: string) {
@@ -172,8 +176,8 @@ export class DragHandleWidget extends WidgetElement {
   }
 
   private get _rangeManager() {
-    assertExists(this._pageBlockElement.rangeManager);
-    return this._pageBlockElement.rangeManager;
+    assertExists(this.root.rangeManager);
+    return this.root.rangeManager;
   }
 
   private _getClosestBlockElementByPoint(point: Point) {
@@ -270,8 +274,8 @@ export class DragHandleWidget extends WidgetElement {
     const edgelessPage = this._pageBlockElement as EdgelessPageBlockComponent;
     const noteBlockId = noteBlock.path[noteBlock.path.length - 1];
     return (
-      edgelessPage.selection.editing &&
-      edgelessPage.selection.state.elements[0] === noteBlockId
+      edgelessPage.selectionManager.editing &&
+      edgelessPage.selectionManager.state.elements[0] === noteBlockId
     );
   };
 

@@ -3,7 +3,6 @@ import type { Page } from '@blocksuite/store';
 import { assertExists } from '@blocksuite/store';
 
 import type { DocPageBlockComponent } from '../../page-block/index.js';
-import { getTextSelection } from '../../page-block/utils/selection.js';
 import { getService } from '../service/index.js';
 import { activeEditorManager } from '../utils/active-editor-manager.js';
 import type { Clipboard } from './type.js';
@@ -12,7 +11,7 @@ import {
   copyBlocksInPage,
   textedClipboardData2Blocks,
 } from './utils/commons.js';
-import { deleteModelsByRange } from './utils/operation.js';
+import { deleteModelsByTextSelection } from './utils/operation.js';
 
 export class PageClipboard implements Clipboard {
   _page!: Page;
@@ -52,7 +51,7 @@ export class PageClipboard implements Clipboard {
       return;
     }
 
-    const textSelection = getTextSelection(this._ele);
+    const textSelection = this._ele.selection.find('text');
 
     if (!e.clipboardData || !textSelection) {
       return;
@@ -60,7 +59,10 @@ export class PageClipboard implements Clipboard {
     e.preventDefault();
 
     let blocks = [];
-    const focusedBlockModel = deleteModelsByRange(this._ele, textSelection);
+    const focusedBlockModel = deleteModelsByTextSelection(
+      this._ele,
+      textSelection
+    );
     // This assert is unreliable
     // but it's reasonable to paste nothing when focus block is not found
     assertExists(focusedBlockModel);
@@ -106,12 +108,22 @@ export class PageClipboard implements Clipboard {
     if (!activeEditorManager.isActive(this._ele)) {
       return;
     }
-    const textSelection = getTextSelection(this._ele);
-    if (!textSelection) {
+    const textSelection = this._ele.selection.find('text');
+    if (textSelection) {
+      e.preventDefault();
+      await this._onCopy(ctx);
+      deleteModelsByTextSelection(this._ele, textSelection);
       return;
     }
+    const blockSelections = this._ele.selection.filter('block');
     e.preventDefault();
     await this._onCopy(ctx);
-    deleteModelsByRange(this._ele, textSelection);
+    blockSelections.forEach(block => {
+      const model = this._page.getBlockById(block.blockId);
+      if (!model) {
+        return;
+      }
+      this._page.deleteBlock(model);
+    });
   };
 }
